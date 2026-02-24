@@ -36,11 +36,10 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showScrollButton, setShowScrollButton] = useState(false);
     const currentUser = useQuery(api.users.getMe);
-
+    const currentUserId = currentUser?._id;
     const messagesCount = messages?.length || 0;
 
-    const otherUser = conversation?.participants.find(p => p && p.tokenIdentifier !== user?.id);
-    const currentUserId = currentUser?._id;
+    const otherUser = currentUserId ? conversation?.participants.find(p => p && p._id !== currentUserId) : null;
 
 
     const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
