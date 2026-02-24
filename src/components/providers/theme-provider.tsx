@@ -87,7 +87,7 @@ export const wallpapers: Wallpaper[] = [
     { id: "circuit", name: "Circuit", class: "chat-circuit" },
     { id: "bubbles", name: "Bubbles", class: "chat-bubbles" },
     { id: "stars", name: "Stars", class: "chat-stars" },
-    { id: "none", name: "Solid", class: "" },
+    { id: "none", name: "Solid", class: "chat-solid" },
 ];
 
 type ThemeContextType = {

@@ -109,11 +109,7 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
     }
 
     return (
-        <div className={cn("flex-1 flex flex-col h-full relative transition-all duration-500", currentTheme.background, currentWallpaper.class)}>
-            {/* Background Overlay for readability */}
-            {currentWallpaper.class.includes('bg-') && (
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] pointer-events-none" />
-            )}
+        <div className={cn("flex-1 flex flex-col h-full relative transition-all duration-500 overflow-hidden", currentTheme.background, currentWallpaper.class)}>
             {/* Header */}
             <div className="relative border-b bg-white shadow-sm z-30">
                 <div
@@ -183,14 +179,19 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
             <div
                 ref={scrollRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-gray-200"
+                className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-gray-200 relative"
             >
+                {/* Background Overlay for readability - Only for image wallpapers */}
+                {currentWallpaper.class.includes('url(') && (
+                    <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] pointer-events-none z-0" />
+                )}
+
                 {!messages ? (
-                    <div className="flex justify-center p-8">
+                    <div className="flex justify-center p-8 relative z-10">
                         <Loader2 className="animate-spin text-indigo-500" />
                     </div>
                 ) : messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                    <div className="flex flex-col items-center justify-center h-full text-gray-400 relative z-10">
                         <div className="bg-white p-6 rounded-full shadow-sm mb-4">
                             <MessageSquare size={48} className="text-indigo-200" />
                         </div>
@@ -203,9 +204,14 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
 
                         return (
                             <div key={msg._id} className={cn(
-                                "flex flex-col",
+                                "flex flex-col relative z-10",
                                 isMe ? "items-end" : "items-start"
                             )}>
+                                {!isMe && conversation.isGroup && (
+                                    <span className="text-[10px] font-extrabold text-indigo-600 ml-2 mb-1 uppercase tracking-wider subpixel-antialiased">
+                                        {msg.senderName}
+                                    </span>
+                                )}
                                 <div className={cn(
                                     "max-w-[85%] md:max-w-[70%] px-4 py-2.5 rounded-2xl relative group transition-all shrink-0 border",
                                     isMe

@@ -11,7 +11,7 @@ interface CreateGroupModalProps {
 }
 
 export function CreateGroupModal({ onClose, onCreated }: CreateGroupModalProps) {
-    const users = useQuery(api.users.listUsers);
+    const users = useQuery(api.users.listUsers, {});
     const createGroup = useMutation(api.conversations.createGroup);
     const [name, setName] = useState("");
     const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
