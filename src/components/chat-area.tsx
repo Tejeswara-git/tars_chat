@@ -37,16 +37,11 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
     const [showScrollButton, setShowScrollButton] = useState(false);
     const currentUser = useQuery(api.users.getMe);
 
-    useEffect(() => {
-        if (conversationId) {
-            markAsRead({ conversationId });
-            // Add focus to the input when conversation changes
-            setTimeout(() => inputRef.current?.focus(), 100);
-        }
-    }, [conversationId, messages, markAsRead]);
+    const messagesCount = messages?.length || 0;
 
     const otherUser = conversation?.participants.find(p => p && p.tokenIdentifier !== user?.id);
     const currentUserId = currentUser?._id;
+
 
     const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
         if (scrollRef.current) {
@@ -58,18 +53,31 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
     };
 
     useEffect(() => {
-        if (messages) {
+        if (conversationId && messages && messages.length > 0) {
             if (!scrollRef.current) return;
             const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-            const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+            const wasNearBottom = scrollHeight - scrollTop - clientHeight < 150;
 
-            if (isAtBottom) {
-                scrollToBottom("instant");
+            const lastMessage = messages[messages.length - 1];
+            const isMe = lastMessage.senderId === currentUserId;
+
+            if (wasNearBottom || isMe) {
+                // Focus input when messages change
+                setTimeout(() => inputRef.current?.focus(), 100);
+
+                // Ensure we scroll and mark as read After the DOM has updated
+                setTimeout(() => {
+                    scrollToBottom("instant");
+                    markAsRead({ conversationId });
+                }, 0);
+                setHasUnreadInView(false);
             } else {
-                setHasUnreadInView(true);
+                if (!isMe) {
+                    setHasUnreadInView(true);
+                }
             }
         }
-    }, [messages]);
+    }, [conversationId, messagesCount, markAsRead, currentUserId]);
 
     const handleScroll = () => {
         if (!scrollRef.current) return;
@@ -78,12 +86,9 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
 
         if (isAtBottom) {
             setHasUnreadInView(false);
-            setShowScrollButton(false);
-        } else {
-            // Only show if we actually have unread or if we want a general scroll-to-bottom
-            // But user specifically said "once seen, don't show"
-            // So we only show if hasUnreadInView is true
-            setShowScrollButton(false);
+            if (conversationId) {
+                markAsRead({ conversationId });
+            }
         }
     };
 
@@ -322,9 +327,12 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
             </div>
 
             {/* Scroll Down Button / New Message Indicator */}
-            {(showScrollButton || hasUnreadInView) && (
+            {hasUnreadInView && (
                 <button
-                    onClick={() => scrollToBottom()}
+                    onClick={() => {
+                        scrollToBottom();
+                        setHasUnreadInView(false);
+                    }}
                     className={cn(
                         "absolute bottom-24 right-8 text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 animate-bounce z-20 transition",
                         currentTheme.bubbleMe

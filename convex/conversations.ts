@@ -86,19 +86,25 @@ export const listConversations = query({
 
                 // Calculate unread count
                 let unreadCount = 0;
-                if (lastMessage) {
-                    const messages = await ctx.db
-                        .query("messages")
-                        .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
-                        .order("desc")
-                        .collect();
+                const allMessages = await ctx.db
+                    .query("messages")
+                    .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
+                    .order("desc")
+                    .collect();
 
-                    if (uc.lastReadMessageId) {
-                        const lastReadIndex = messages.findIndex(m => m._id === uc.lastReadMessageId);
-                        unreadCount = lastReadIndex === -1 ? messages.length : lastReadIndex;
-                    } else {
-                        unreadCount = messages.length;
-                    }
+                if (uc.lastReadMessageId) {
+                    const lastReadMessage = await ctx.db.get(uc.lastReadMessageId);
+                    const lastReadTime = lastReadMessage?._creationTime || 0;
+
+                    // Count messages from others that are newer than our last read marker AND not deleted
+                    unreadCount = allMessages.filter(m =>
+                        m.senderId !== user._id &&
+                        !m.isDeleted &&
+                        m._creationTime > lastReadTime
+                    ).length;
+                } else {
+                    // No read marker, count all non-deleted messages from others
+                    unreadCount = allMessages.filter(m => m.senderId !== user._id && !m.isDeleted).length;
                 }
 
                 return {
