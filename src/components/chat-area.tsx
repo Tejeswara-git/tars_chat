@@ -31,6 +31,7 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
     const [showParticipants, setShowParticipants] = useState(false);
     const [sendError, setSendError] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
+    const [hasUnreadInView, setHasUnreadInView] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showScrollButton, setShowScrollButton] = useState(false);
@@ -57,8 +58,16 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
     };
 
     useEffect(() => {
-        if (messages && !showScrollButton) {
-            scrollToBottom("instant");
+        if (messages) {
+            if (!scrollRef.current) return;
+            const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+            const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+
+            if (isAtBottom) {
+                scrollToBottom("instant");
+            } else {
+                setHasUnreadInView(true);
+            }
         }
     }, [messages]);
 
@@ -66,7 +75,16 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
         if (!scrollRef.current) return;
         const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
         const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
-        setShowScrollButton(!isAtBottom);
+
+        if (isAtBottom) {
+            setHasUnreadInView(false);
+            setShowScrollButton(false);
+        } else {
+            // Only show if we actually have unread or if we want a general scroll-to-bottom
+            // But user specifically said "once seen, don't show"
+            // So we only show if hasUnreadInView is true
+            setShowScrollButton(false);
+        }
     };
 
     const handleSend = async (e?: React.FormEvent, retryContent?: string) => {
@@ -110,6 +128,10 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
 
     return (
         <div className={cn("flex-1 flex flex-col h-full relative transition-all duration-500 overflow-hidden", currentTheme.background, currentWallpaper.class)}>
+            {/* Background Overlay for image wallpapers - spread over entire chat area */}
+            {currentWallpaper.class.includes('url(') && (
+                <div className="absolute inset-0 bg-black/5 pointer-events-none z-0" />
+            )}
             {/* Header */}
             <div className="relative border-b bg-white shadow-sm z-30">
                 <div
@@ -181,10 +203,6 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
                 onScroll={handleScroll}
                 className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-gray-200 relative"
             >
-                {/* Background Overlay for readability - Only for image wallpapers */}
-                {currentWallpaper.class.includes('url(') && (
-                    <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] pointer-events-none z-0" />
-                )}
 
                 {!messages ? (
                     <div className="flex justify-center p-8 relative z-10">
@@ -208,7 +226,10 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
                                 isMe ? "items-end" : "items-start"
                             )}>
                                 {!isMe && conversation.isGroup && (
-                                    <span className="text-[10px] font-extrabold text-indigo-600 ml-2 mb-1 uppercase tracking-wider subpixel-antialiased">
+                                    <span className={cn(
+                                        "text-[11px] font-black ml-2 mb-1 uppercase tracking-[0.05em] subpixel-antialiased drop-shadow-sm",
+                                        currentWallpaper.id === "nature1" ? "text-indigo-500" : "text-amber-500"
+                                    )}>
                                         {msg.senderName}
                                     </span>
                                 )}
@@ -223,7 +244,7 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
                                         <p className="italic text-sm opacity-80">This message was deleted</p>
                                     ) : (
                                         <>
-                                            <p className="text-sm md:text-base leading-relaxed">{msg.content}</p>
+                                            <p className="text-sm md:text-base leading-relaxed font-medium">{msg.content}</p>
 
                                             {/* Tooltip actions */}
                                             <div className={cn(
@@ -300,8 +321,8 @@ export function ChatArea({ conversationId, onBack }: ChatAreaProps) {
                 )}
             </div>
 
-            {/* Scroll Down Button */}
-            {showScrollButton && (
+            {/* Scroll Down Button / New Message Indicator */}
+            {(showScrollButton || hasUnreadInView) && (
                 <button
                     onClick={() => scrollToBottom()}
                     className={cn(

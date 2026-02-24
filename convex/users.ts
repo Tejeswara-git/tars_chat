@@ -64,7 +64,11 @@ export const listUsers = query({
 
         const allUsers = await ctx.db.query("users").collect();
 
-        let filteredUsers = allUsers.filter(u => u.tokenIdentifier !== identity.tokenIdentifier);
+        // Filter out the current user and any users marked as deleted
+        let filteredUsers = allUsers.filter(u =>
+            u.tokenIdentifier !== identity.tokenIdentifier &&
+            !u.isDeleted
+        );
 
         if (args.search) {
             const search = args.search.toLowerCase();
@@ -96,3 +100,12 @@ export const setUserStatus = mutation({
         }
     },
 });
+
+export const remove = mutation({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.userId, { isDeleted: true });
+    },
+});
+
+

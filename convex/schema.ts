@@ -8,15 +8,16 @@ export default defineSchema({
     image: v.string(),
     tokenIdentifier: v.string(),
     isOnline: v.boolean(),
+    isDeleted: v.optional(v.boolean()),
   }).index("by_token", ["tokenIdentifier"]),
-  
+
   conversations: defineTable({
     participants: v.array(v.id("users")),
     isGroup: v.boolean(),
     name: v.optional(v.string()), // For group chat
     groupAdmin: v.optional(v.id("users")),
   }),
-  
+
   messages: defineTable({
     conversationId: v.id("conversations"),
     senderId: v.id("users"),
@@ -24,7 +25,7 @@ export default defineSchema({
     type: v.string(), // "text", "image", etc.
     isDeleted: v.boolean(),
   }).index("by_conversation", ["conversationId"]),
-  
+
   userConversations: defineTable({
     userId: v.id("users"),
     conversationId: v.id("conversations"),
